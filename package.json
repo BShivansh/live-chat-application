@@ -2,6 +2,7 @@
   "name": "live-chat-next",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -9,19 +10,28 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "concurrently": "^9.1.2",
+    "emoji-picker-react": "^4.12.2",
+    "express": "^4.21.2",
+    "firebase": "^11.4.0",
+    "framer-motion": "^12.5.0",
+    "lucide-react": "^0.483.0",
+    "next": "15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.2.3"
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
