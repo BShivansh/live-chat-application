@@ -15,7 +15,7 @@ export default function ChatBox() {
   >([]);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
-  const [, setUserId] = useState<string>("");
+  const [_userId, setUserId] = useState<string>("");
   const [joined, setJoined] = useState(false);
   const [privateChat, setPrivateChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
