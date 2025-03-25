@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
+import { EmojiClickData } from "emoji-picker-react";
 
 const socket = io("http://192.168.29.109:4000", {
   transports: ["websocket", "polling"],
@@ -14,7 +15,7 @@ export default function ChatBox() {
   >([]);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
-  const [userId, setUserId] = useState<string>("");
+  const [, setUserId] = useState<string>("");
   const [joined, setJoined] = useState(false);
   const [privateChat, setPrivateChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -88,7 +89,7 @@ export default function ChatBox() {
     }, 100);
   };
 
-  const addEmoji = (emoji: any) => {
+  const addEmoji = (emoji: EmojiClickData) => {
     setMessage((prev) => prev + emoji.emoji);
   };
 
@@ -111,8 +112,9 @@ export default function ChatBox() {
         {!joined ? (
           <div className="p-6 flex flex-col space-y-4 text-white">
             <h1 className="text-lg font-semibold text-center">
-              Join "brainspack" Chat
+              Join &quot;brainspack&quot; Chat
             </h1>
+
             <input
               className="p-2 bg-gray-700 rounded-lg"
               type="text"
