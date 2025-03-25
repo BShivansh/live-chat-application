@@ -15,6 +15,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 const PORT = 4000;
 const ROOM_NAME = "brainspack";
 const users = {};
+
 nextApp.prepare().then(() => {
   app.all("*", (req, res) => handle(req, res));
 
@@ -49,6 +50,17 @@ nextApp.prepare().then(() => {
       io.to(ROOM_NAME).emit("chat message", { message, sender });
     });
 
+    socket.on("private message", ({ to, message, sender }) => {
+      const recipientSocketId = Object.keys(users).find(
+        (key) => users[key] === to
+      );
+
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("private message", { message, sender });
+        console.log(`📩 Private message from ${sender} to ${to}: ${message}`);
+      }
+    });
+
     socket.on("disconnect", () => {
       const username = users[socket.id];
       if (username) {
@@ -62,6 +74,7 @@ nextApp.prepare().then(() => {
       }
     });
   });
+
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running at http://${getIPAddress()}:${PORT}`);
   });

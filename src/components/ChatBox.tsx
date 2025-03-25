@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
-import EmojiPicker from "emoji-picker-react"; // ✅ Import Emoji Picker
-import * as yup from "yup";
+import EmojiPicker from "emoji-picker-react";
 
 const socket = io("http://192.168.29.109:4000", {
   transports: ["websocket", "polling"],
@@ -10,17 +9,19 @@ const socket = io("http://192.168.29.109:4000", {
 
 export default function ChatBox() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<{ text: string; sender: string }[]>(
-    []
-  );
+  const [messages, setMessages] = useState<
+    { text: string; sender: string; private?: boolean }[]
+  >([]);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [userId, setUserId] = useState<string>("");
   const [joined, setJoined] = useState(false);
+  const [privateChat, setPrivateChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const [roomMessages, setRoomMessages] = useState<
+    { text: string; sender: string }[]
+  >([]);
   useEffect(() => {
     socket.on("connect", () => {
       if (socket.id) setUserId(socket.id);
@@ -30,10 +31,18 @@ export default function ChatBox() {
       setMessages((prev) => [...prev, { text: message, sender }]);
     });
 
+    socket.on("private message", ({ message, sender }) => {
+      setMessages((prev) => [
+        ...prev,
+        { text: message, sender, private: true },
+      ]);
+    });
+
     return () => {
       socket.off("chat message");
+      socket.off("private message");
     };
-  }, [userId]);
+  }, []);
 
   const joinRoom = () => {
     if (username.trim() && phone.trim()) {
@@ -48,12 +57,27 @@ export default function ChatBox() {
     socket.emit("leave room", { username });
     setJoined(false);
     setMessages([]);
+    setPrivateChat(null);
   };
 
   const sendMessage = () => {
     if (message.trim()) {
-      socket.emit("chat message", { message, sender: username });
+      if (privateChat) {
+        socket.emit("private message", {
+          to: privateChat,
+          message,
+          sender: username,
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          { text: message, sender: username, private: true },
+        ]);
+      } else {
+        socket.emit("chat message", { message, sender: username });
+      }
       setMessage("");
+      setShowEmojiPicker(false);
       scrollToBottom();
     }
   };
@@ -64,9 +88,21 @@ export default function ChatBox() {
     }, 100);
   };
 
-  // ✅ Keep the emoji picker open after selecting emojis
   const addEmoji = (emoji: any) => {
     setMessage((prev) => prev + emoji.emoji);
+  };
+
+  const startPrivateChat = (user: string) => {
+    if (user !== username) {
+      setRoomMessages(messages);
+      setPrivateChat(user);
+      setMessages([]);
+    }
+  };
+
+  const goBackToRoom = () => {
+    setMessages(roomMessages); // Restore old room messages
+    setPrivateChat(null);
   };
 
   return (
@@ -98,12 +134,16 @@ export default function ChatBox() {
         ) : (
           <>
             <div className="bg-blue-600 text-white text-lg font-semibold p-4 flex justify-between">
-              <span>Live Chat - brainspack</span>
+              <span>
+                {privateChat
+                  ? `Chat with ${privateChat}`
+                  : "Live Chat - brainspack"}
+              </span>
               <button
                 className="bg-red-500 px-3 py-1 rounded"
-                onClick={leaveRoom}
+                onClick={privateChat ? goBackToRoom : leaveRoom}
               >
-                Leave
+                {privateChat ? "Back" : "Leave"}
               </button>
             </div>
 
@@ -118,14 +158,22 @@ export default function ChatBox() {
                 >
                   <div
                     className={`px-4 py-2 max-w-[70%] rounded-lg ${
-                      msg.sender === "System"
+                      msg.private
+                        ? "bg-green-500 text-white"
+                        : msg.sender === "System"
                         ? "bg-gray-500 text-white text-center w-full"
                         : msg.sender === username
                         ? "bg-blue-500 text-white"
                         : "bg-gray-700 text-white"
                     }`}
                   >
-                    {msg.text}
+                    <span
+                      className="block font-semibold cursor-pointer hover:underline"
+                      onClick={() => startPrivateChat(msg.sender)}
+                    >
+                      {msg.sender === username ? "You" : msg.sender}
+                    </span>
+                    <span>{msg.text}</span>
                   </div>
                 </div>
               ))}
@@ -153,16 +201,12 @@ export default function ChatBox() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     sendMessage();
-                    setShowEmojiPicker(false);
                   }
                 }}
               />
               <button
                 className="ml-3 bg-blue-600 hover:bg-blue-700 p-2 rounded-full"
-                onClick={() => {
-                  sendMessage();
-                  setShowEmojiPicker(false);
-                }}
+                onClick={sendMessage}
               >
                 Send
               </button>
