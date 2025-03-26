@@ -64,7 +64,7 @@ nextApp.prepare().then(() => {
     socket.on("disconnect", () => {
       const username = users[socket.id];
       if (username) {
-        io.to(ROOM_NAME).emit("chat message", {
+        io.to(ROOM_NAME).emit("cha t message", {
           message: `🔴 ${username} has left the chat.`,
           sender: "System",
         });

@@ -15,7 +15,7 @@ export default function ChatBox() {
   >([]);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
-  const [_userId, setUserId] = useState<string>("");
+  const [, setUserId] = useState<string>("");
   const [joined, setJoined] = useState(false);
   const [privateChat, setPrivateChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -23,6 +23,9 @@ export default function ChatBox() {
   const [roomMessages, setRoomMessages] = useState<
     { text: string; sender: string }[]
   >([]);
+  const [privateMessages, setPrivateMessages] = useState<
+    Record<string, { text: string; sender: string }[]>
+  >({});
   useEffect(() => {
     socket.on("connect", () => {
       if (socket.id) setUserId(socket.id);
@@ -97,15 +100,22 @@ export default function ChatBox() {
     if (user !== username) {
       setRoomMessages(messages);
       setPrivateChat(user);
-      setMessages([]);
+
+      setMessages(privateMessages[user] || []);
     }
   };
 
   const goBackToRoom = () => {
-    setMessages(roomMessages); // Restore old room messages
+    if (privateChat) {
+      setPrivateMessages((prev) => ({
+        ...prev,
+        [privateChat]: messages,
+      }));
+    }
+
+    setMessages(roomMessages);
     setPrivateChat(null);
   };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-sm h-screen bg-gray-800 shadow-lg rounded-lg flex flex-col">
