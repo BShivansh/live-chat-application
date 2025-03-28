@@ -6,6 +6,6 @@ export const chatValidationSchema = Yup.object({
     .required("Name is required"),
 
   phone: Yup.string()
-    .matches(/^[0-9]{10,15}$/, "Enter a valid phone number (10-15 digits)")
+    .matches(/^[0-9]{10,15}$/, "Enter a valid phone number (10 digits)")
     .required("Phone number is required"),
 });
