@@ -232,7 +232,6 @@ export default function ChatBox() {
                     msg.sender === username ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Show avatar only for other users */}
                   {msg.sender !== username && (
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center mr-2 text-white font-bold ${getAvatarColor(
