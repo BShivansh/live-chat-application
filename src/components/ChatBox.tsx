@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
 import { EmojiClickData } from "emoji-picker-react";
+import { chatValidationSchema } from "./validationSchema";
+import * as Yup from "yup";
 
 const socket = io("http://192.168.29.109:4000", {
   transports: ["websocket", "polling"],
@@ -28,6 +30,7 @@ export default function ChatBox() {
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
+  const [errors, setErrors] = useState({ username: "", phone: "" });
   const [, setUserId] = useState<string>("");
   const [joined, setJoined] = useState(false);
   const [privateChat, setPrivateChat] = useState<string | null>(null);
@@ -75,14 +78,34 @@ export default function ChatBox() {
     };
   }, [privateChat]);
 
-  const joinRoom = () => {
-    if (username.trim() && phone.trim()) {
-      socket.emit("join room", { username, phone });
-      setJoined(true);
-      setMessages(roomMessages);
-    } else {
-      alert("Please enter your name and phone number!");
+  const validateForm = async () => {
+    try {
+      await chatValidationSchema.validate(
+        { username, phone },
+        { abortEarly: false }
+      );
+      setErrors({ username: "", phone: "" });
+      return true;
+    } catch (validationErrors) {
+      const newErrors: { username: string; phone: string } = {
+        username: "",
+        phone: "",
+      };
+      (validationErrors as Yup.ValidationError).inner.forEach((error) => {
+        if (error.path)
+          newErrors[error.path as keyof typeof newErrors] = error.message;
+      });
+      setErrors(newErrors);
+      return false;
     }
+  };
+
+  const joinRoom = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
+
+    socket.emit("join room", { username, phone });
+    setJoined(true);
   };
 
   const leaveRoom = () => {
@@ -157,28 +180,49 @@ export default function ChatBox() {
         } bg-white dark:bg-gray-800 shadow-2xl rounded-xl flex flex-col overflow-hidden`}
       >
         {!joined ? (
-          <div className="p-6 flex flex-col space-y-4 text-white">
-            <h1 className="text-lg font-semibold text-center">
+          <div className="p-6 flex flex-col space-y-2 text-white h-[350px] ">
+            <h1 className="text-lg font-semibold text-center mb-4">
               Join &quot;brainspack&quot; Chat
             </h1>
 
             <input
-              className="p-2 bg-gray-700 rounded-lg"
+              className={`p-2 rounded-lg ${
+                errors.username ? "border-red-500" : "border-gray-700"
+              } bg-gray-700 border`}
               type="text"
               placeholder="Enter your name"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
+            <div className="h-[20px]">
+              {errors.username && (
+                <span className="text-red-500 text-sm">{errors.username}</span>
+              )}
+            </div>
+
             <input
-              className="p-2 bg-gray-700 rounded-lg"
+              className={`p-2 rounded-lg ${
+                errors.phone ? "border-red-500" : "border-gray-700"
+              } bg-gray-700 border`}
               type="text"
               placeholder="Enter your phone number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-            <button className="bg-blue-600 p-2 rounded-lg" onClick={joinRoom}>
-              Join Chat
-            </button>
+            <div className="h-[20px] mb-8">
+              {errors.phone && (
+                <span className="text-red-500 text-sm">{errors.phone}</span>
+              )}
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                className="bg-blue-600 p-2 rounded-lg w-[150px]"
+                onClick={joinRoom}
+              >
+                Join Chat
+              </button>
+            </div>
           </div>
         ) : (
           <>
