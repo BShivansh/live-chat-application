@@ -197,34 +197,6 @@ export default function ChatBox() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-              {/* {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    msg.sender === username ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`px-4 py-2 max-w-[70%] rounded-lg ${
-                      privateChat
-                        ? "bg-green-500 text-white"
-                        : msg.sender === "System"
-                        ? "bg-gray-500 text-white text-center w-full"
-                        : msg.sender === username
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-700 text-white"
-                    }`}
-                  >
-                    <span
-                      className="block font-semibold cursor-pointer hover:underline"
-                      onClick={() => startPrivateChat(msg.sender)}
-                    >
-                      {msg.sender === username ? "You" : msg.sender}
-                    </span>
-                    <span>{msg.text}</span>
-                  </div>
-                </div>
-              ))} */}
               {messages.map((msg, index) => (
                 <div
                   key={index}
