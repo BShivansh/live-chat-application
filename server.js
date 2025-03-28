@@ -14,7 +14,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 const PORT = 4000;
 const ROOM_NAME = "brainspack";
-const users = {};
+const users = {}; // Stores socket.id -> username mapping
 
 nextApp.prepare().then(() => {
   app.all("*", (req, res) => handle(req, res));
@@ -46,10 +46,12 @@ nextApp.prepare().then(() => {
       console.log(`📢 ${username} joined the room (${ROOM_NAME})`);
     });
 
+    // ✅ Room Message Handling (Only Broadcasts to the Room)
     socket.on("chat message", ({ message, sender }) => {
       io.to(ROOM_NAME).emit("chat message", { message, sender });
     });
 
+    // ✅ Private Message Handling (Only Sends to One User)
     socket.on("private message", ({ to, message, sender }) => {
       const recipientSocketId = Object.keys(users).find(
         (key) => users[key] === to

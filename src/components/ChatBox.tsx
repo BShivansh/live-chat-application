@@ -8,11 +8,24 @@ const socket = io("http://192.168.29.109:4000", {
   transports: ["websocket", "polling"],
 });
 
+const getAvatarColor = (username: string) => {
+  const colors = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-pink-500",
+    "bg-indigo-500",
+    "bg-teal-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
 export default function ChatBox() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<
-    { text: string; sender: string; private?: boolean }[]
-  >([]);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [, setUserId] = useState<string>("");
@@ -20,38 +33,53 @@ export default function ChatBox() {
   const [privateChat, setPrivateChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [roomMessages, setRoomMessages] = useState<
     { text: string; sender: string }[]
   >([]);
   const [privateMessages, setPrivateMessages] = useState<
     Record<string, { text: string; sender: string }[]>
   >({});
+
+  const [messages, setMessages] = useState<{ text: string; sender: string }[]>(
+    []
+  );
+
   useEffect(() => {
     socket.on("connect", () => {
       if (socket.id) setUserId(socket.id);
     });
 
     socket.on("chat message", ({ message, sender }) => {
-      setMessages((prev) => [...prev, { text: message, sender }]);
+      setRoomMessages((prev) => [...prev, { text: message, sender }]);
+
+      if (!privateChat) {
+        setMessages((prev) => [...prev, { text: message, sender }]);
+      }
     });
 
     socket.on("private message", ({ message, sender }) => {
-      setMessages((prev) => [
+      setPrivateMessages((prev) => ({
         ...prev,
-        { text: message, sender, private: true },
-      ]);
+        [sender]: [...(prev[sender] || []), { text: message, sender }],
+      }));
+
+      if (privateChat === sender) {
+        setMessages((prev) => [...prev, { text: message, sender }]);
+      }
     });
 
     return () => {
       socket.off("chat message");
       socket.off("private message");
     };
-  }, []);
+  }, [privateChat]);
 
   const joinRoom = () => {
     if (username.trim() && phone.trim()) {
       socket.emit("join room", { username, phone });
       setJoined(true);
+      setMessages(roomMessages);
     } else {
       alert("Please enter your name and phone number!");
     }
@@ -60,8 +88,9 @@ export default function ChatBox() {
   const leaveRoom = () => {
     socket.emit("leave room", { username });
     setJoined(false);
-    setMessages([]);
+    setRoomMessages([]);
     setPrivateChat(null);
+    setMessages([]);
   };
 
   const sendMessage = () => {
@@ -73,10 +102,15 @@ export default function ChatBox() {
           sender: username,
         });
 
-        setMessages((prev) => [
+        setPrivateMessages((prev) => ({
           ...prev,
-          { text: message, sender: username, private: true },
-        ]);
+          [privateChat]: [
+            ...(prev[privateChat] || []),
+            { text: message, sender: username },
+          ],
+        }));
+
+        setMessages((prev) => [...prev, { text: message, sender: username }]);
       } else {
         socket.emit("chat message", { message, sender: username });
       }
@@ -98,9 +132,7 @@ export default function ChatBox() {
 
   const startPrivateChat = (user: string) => {
     if (user !== username) {
-      setRoomMessages(messages);
       setPrivateChat(user);
-
       setMessages(privateMessages[user] || []);
     }
   };
@@ -116,9 +148,14 @@ export default function ChatBox() {
     setMessages(roomMessages);
     setPrivateChat(null);
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <div className="w-full max-w-sm h-screen bg-gray-800 shadow-lg rounded-lg flex flex-col">
+      <div
+        className={`w-full max-w-md ${
+          joined ? "h-[90vh]" : "h-auto"
+        } bg-white dark:bg-gray-800 shadow-2xl rounded-xl flex flex-col overflow-hidden`}
+      >
         {!joined ? (
           <div className="p-6 flex flex-col space-y-4 text-white">
             <h1 className="text-lg font-semibold text-center">
@@ -159,9 +196,8 @@ export default function ChatBox() {
               </button>
             </div>
 
-            {/* Messages Box */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {messages.map((msg, index) => (
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+              {/* {messages.map((msg, index) => (
                 <div
                   key={index}
                   className={`flex ${
@@ -170,7 +206,7 @@ export default function ChatBox() {
                 >
                   <div
                     className={`px-4 py-2 max-w-[70%] rounded-lg ${
-                      msg.private
+                      privateChat
                         ? "bg-green-500 text-white"
                         : msg.sender === "System"
                         ? "bg-gray-500 text-white text-center w-full"
@@ -188,7 +224,58 @@ export default function ChatBox() {
                     <span>{msg.text}</span>
                   </div>
                 </div>
+              ))} */}
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex items-start ${
+                    msg.sender === username ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {/* Show avatar only for other users */}
+                  {msg.sender !== username && (
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center mr-2 text-white font-bold ${getAvatarColor(
+                        msg.sender
+                      )}`}
+                    >
+                      {msg.sender ? msg.sender.charAt(0).toUpperCase() : "?"}
+                    </div>
+                  )}
+                  <div
+                    className={`px-4 py-2 max-w-[70%] rounded-lg shadow-sm flex items-start ${
+                      privateChat
+                        ? "bg-green-500 text-white"
+                        : msg.sender === "System"
+                        ? "bg-gray-500 text-white text-center w-full"
+                        : msg.sender === username
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-700 text-white"
+                    }`}
+                  >
+                    <div>
+                      <span
+                        className="block font-semibold cursor-pointer hover:underline"
+                        onClick={() => startPrivateChat(msg.sender)}
+                      >
+                        {msg.sender === username ? "You" : msg.sender}
+                      </span>
+                      <span>{msg.text}</span>
+                    </div>
+                  </div>
+
+                  {msg.sender === username && (
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ml-2 text-white font-bold ${getAvatarColor(
+                        username
+                      )}`}
+                    >
+                      {username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
               ))}
+
               <div ref={messagesEndRef}></div>
             </div>
 
