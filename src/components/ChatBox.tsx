@@ -6,7 +6,7 @@ import { EmojiClickData } from "emoji-picker-react";
 import { chatValidationSchema } from "./validationSchema";
 import * as Yup from "yup";
 
-const socket = io("http://192.168.29.109:4000", {
+const socket = io("http://10.250.32.74:4000", {
   transports: ["websocket", "polling"],
 });
 
